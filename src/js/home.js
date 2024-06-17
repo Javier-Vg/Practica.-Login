@@ -1,5 +1,5 @@
 import { getData, deleteData, putData } from "./fetch.js";
-import { mostrarMensaje } from "./validaciones.js";
+import { mostrarMensaje, validarVacio } from "./validaciones.js";
 
 const id = localStorage.getItem("usuarioActivo");
 const mensaje = document.getElementById("mensaje");
@@ -29,45 +29,88 @@ document.getElementById("eliminarBtn").addEventListener("click", async () => {
 const inputComent = document.getElementById("coment");
 const escritura = document.getElementById("escritura");
 const divComent = document.getElementById("comentDiv");
+const alertaDiv = document.getElementById("mensajeDiv");
+
 let idActivo = localStorage.getItem("usuarioActivo");
+let match = false;
+
+console.log(idActivo);
+let TotalComents = [];
+
 inputComent.addEventListener("keyup" , async (e) => {
   e.preventDefault();
   
   let users = await getData();
-  let comentario = "";
-
   
+
   escritura.innerHTML = e.target.value;
 
   if (e.key === 'Enter') {
+    const vacio = validarVacio(inputComent.value);
+    if (!vacio.error) {
+      divComent.innerHTML += "-"+e.target.value+" <br>";
+      escritura.innerHTML= "";
 
-    divComent.innerHTML += "-"+e.target.value+" <br>";
-    users.forEach(user => {
-      if (user.id === idActivo) {
-        if (user.coments == null) { //Verifica si hubo algun otro comentario, esto para no sobreescribirlo con el nuevo comentario
-          comentario = {
-            id: idActivo,
-            coments: {
-              coment: [[inputComent.value]]
+      
+      let input = inputComent.value;
+
+      users.forEach(user => {
+        if (user.id === idActivo){
+          match = true;
+          if(user.coments === undefined){
+            TotalComents.push(input);
+  
+            let comentario = {
+              id: idActivo,
+              coments: TotalComents
             }
+            putData(comentario)
+          }else{
+            
+            let arrayComentarios = user.coments
+            arrayComentarios.push(input)
+            
+            let comentario = {
+              id: idActivo,
+              coments: arrayComentarios
+            }
+            putData(comentario)
+          }  
+          if (match) {
+            mostrarMensaje(alertaDiv, ["Agregando comentario..."]);
+
+            setTimeout(function() {
+              alertaDiv.innerHTML = "";
+            }, 1500);  
+          }
+        }
+      })
+    }else{
+      mostrarMensaje(alertaDiv, [vacio.mensaje]);
+      setTimeout(function() {
+        alertaDiv.innerHTML = "";
+      }, 1500);
+    }
+  }
+});
+
+
+window.addEventListener("load" , async () =>{
+    let users = await getData();
+    users.forEach(com => {
+      if (com.id == idActivo) {
+        if (com.coments != undefined) {
+          let array = com.coments;
+          console.log(array);
+          for (const comentarios of array) {
+            divComent.innerHTML += "-"+comentarios+"<br>";
           }
           
         }else{
-          comentario = {
-            id: idActivo,
-            coments: {
-              coment: [inputComent.value] + user.coments.coment
-            }
-          }
+          alert("No hay comentarios")
         }
       }
     });
-    
-    putData(comentario)
-    
-    
-
-  }
 })
 
 
